@@ -6,42 +6,161 @@
 //
 
 import UIKit
+import Foundation
 
-class ViewController: UIViewController {
 
-    let url = "https://api.openweathermap.org/data/2.5/weather?q=riyadh&appid=b89dd02047e82447ca0a27b9c0e1ec03"
+class ViewController: UIViewController, UICollectionViewDelegate,UICollectionViewDataSource {
+    
+
+    
+    @IBOutlet weak var maxTmp: UILabel!
+    @IBOutlet weak var avgTmp: UILabel!
+    @IBOutlet weak var minTmp: UILabel!
+    @IBOutlet weak var time: UILabel!
+    @IBOutlet weak var windSpeed: UILabel!
+    @IBOutlet weak var humidity: UILabel!
+    @IBOutlet weak var cloud: UILabel!
+    @IBOutlet weak var feelsLike: UILabel!
+    @IBOutlet weak var collect1: UICollectionView!
+    @IBOutlet weak var collect2: UICollectionView!
+    
+    
+    
+    var maxTmpText = ""
+   var avgTmpText = ""
+    var minTmpText = ""
+    var windSpeedText = ""
+    var humidityText = ""
+     var cloudText = ""
+     var feelsLikeText = ""
+   
+    let url =  URL(string:"https://api.openweathermap.org/data/2.5/weather?q=riyadh&appid=b89dd02047e82447ca0a27b9c0e1ec03")
+    
+   let days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+   let tims = ["1 AM","2 AM","3 AM","4 AM","5 AM","6A M","7 AM","8 AM","9 AM","10 AM"]
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        getData(from:url)
+        
+        
+        let date = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "HH:mm"
+        let hour = dateFormatter.string(from: date)
+        
+        time.text! += hour
+ 
+        print(hour)
+
+        
+        APIreq2{ [self] in
+            print("works")
+            
+            maxTmp.text = maxTmpText
+            avgTmp.text = avgTmpText
+            minTmp.text = minTmpText
+       
+            windSpeed.text! += windSpeedText
+            humidity.text! += humidityText
+            cloud.text! += cloudText
+            feelsLike.text! += feelsLikeText
+
+            
+        }
+        
+        
+        
+        
+        
+        
     }
+    
+    
+    func numberOfSections(in collectionView: UICollectionView) -> Int {
+        return 1
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if collectionView == collect1{
+            return tims.count
+        }
+        
+            
+        return days.count
+        
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+       
+        if collectionView == collect1{
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! cellCollectionViewCell
+         
+            
+            cell.lable1.text = tims[indexPath.row]
+         return cell
+           
+        }
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! cellCollectionViewCell
+        cell.lable2.text = days[indexPath.row]
+    
+               return cell
+    }
+   
+    
+   
+    
+
 
     
-    func getData(from url:String){
-URLSession.shared.dataTask(with: URL(string: url)!, completionHandler:{data,response,error in
-                guard let data = data, error == nil   else {
-                    print("somthing wint wrong")
-                    return}
     
-    var result: APIRespose?
-    do{
-        result=try JSONDecoder().decode(APIRespose.self, from: data)
-    }catch{
-        print("faild to convert \(error.localizedDescription)")
-    }
-    guard let json = result else{
-        return
-    }
-    print(json.weather)
-    print(json.name)
-    print(json.weather.description)
-
-    print(json.main.temp)
-    print(json.main.temp_max)
-    print(json.main.temp_min)
-
-}).resume()
-    }
+    
+    func APIreq2(completed: @escaping () ->()){
+        
+        
+        URLSession.shared.dataTask(with: url!){
+                (data,respone, error) in
+                if error == nil{
+                    do{
+                   let re:APIRespose = try JSONDecoder().decode(APIRespose.self, from: data!)
+                        print("ooooooooooooooo")
+                        print(re.weather[0].main)
+                        print(re.weather[0].description)
+                        print(re.main.temp_min)
+                        print(re.main.temp_max)
+                        print(re.main.temp)
+                        print(re.main.feels_like)
+                        
+                        self.maxTmpText = "\(re.main.temp_max)"
+                        self.avgTmpText = "\(re.main.temp)"
+                        self.minTmpText = "\(re.main.temp_max)"
+                        self.feelsLikeText = "\(re.main.feels_like)"
+                        self.humidityText = "\(re.main.humidity)"
+                        self.windSpeedText = "\(re.wind.speed)"
+                        
+                      
+                        print("ooooooooooooooo")
+    //
+                            
+                            
+                        
+                        
+                        
+                        DispatchQueue.main.sync {
+                            completed()
+                        }
+                        
+                    }catch{
+                        print("json error")
+                    }
+                }
+            }.resume()
+            
+            
+            
+            
+        }
+    
 
 }
 
@@ -49,22 +168,25 @@ struct APIRespose:Decodable{
     let name:String
     let main:APIMain
     let weather:[APIWeather]
+    let wind:Speed
 }
-struct APIMain :Decodable{
+struct APIMain:Decodable {
     let temp:Double
    let temp_max:Double
    let temp_min:Double
+let feels_like:Double
+    let humidity:Int
 }
-
+struct Speed:Decodable{
+    let speed:Double
+}
 struct APIWeather:Decodable{
-    
-    let descripion:String
-    let iconName:String
-    
-    enum CodingKeys:String,CodingKey{
-        case descripion
-        case iconName = "mian"
-    }
+
+    let description:String
+   let icon:String
+    let main:String
+
+
 }
 
 
